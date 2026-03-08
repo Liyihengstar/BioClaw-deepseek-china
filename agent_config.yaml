@@ -1,0 +1,60 @@
+# BioClaw 代理层配置
+# 不存储真实API密钥，使用环境变量
+
+# DeepSeek API配置
+deepseek:
+  api_key: "${DEEPSEEK_API_KEY}"  # 从环境变量读取
+  base_url: "https://api.deepseek.com"
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 2000
+
+# 生物信息学工具配置
+bio_tools:
+  blast:
+    default_program: "blastn"
+    default_database: "nr"
+    online_mode: true  # 使用在线BLAST（避免本地配置问题）
+    
+  pubmed:
+    email: "bioclaw-verification@example.com"  # NCBI需要的邮箱
+    max_results: 10
+
+# 代理层配置
+agent_layer:
+  # Claude格式转换配置
+  claude_format:
+    model_name: "claude-3-5-sonnet-20241022"
+    system_prompt: "你是一个生物信息学助手BioClaw，专门处理BLAST搜索和PubMed文献检索。"
+    
+  # 技能模拟配置
+  skill_simulation:
+    blast_skill_path: "./bioclaw-skills/blast-skill.md"
+    pubmed_skill_path: "./bioclaw-skills/pubmed-skill.md"
+    
+# 验证配置
+verification:
+  test_cases:
+    blast:
+      - name: "DNA序列搜索"
+        sequence: "ATGCGATCGATCGATCGATCGATCG"
+        expected_program: "blastn"
+        
+      - name: "蛋白质序列搜索"
+        sequence: "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAED"
+        expected_program: "blastp"
+        
+    pubmed:
+      - name: "CRISPR搜索"
+        query: "CRISPR gene editing"
+        max_results: 5
+        
+      - name: "癌症治疗"
+        query: "cancer immunotherapy"
+        max_results: 5
+        
+# 日志配置
+logging:
+  level: "INFO"
+  file: "./agent_layer.log"
+  console: true
