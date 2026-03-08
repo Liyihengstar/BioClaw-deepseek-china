@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 运行BioClaw集成代理层 (AlphaFold + DeepSeek API)
+安全版本 - 从环境变量读取API密钥
 """
 
 import os
@@ -8,15 +9,22 @@ import sys
 import time
 from pathlib import Path
 
-# 设置DeepSeek API密钥
-DEEPSEEK_API_KEY = "sk-0641e7a89a56429290a71bc429ae1fe7"
-os.environ["DEEPSEEK_API_KEY"] = DEEPSEEK_API_KEY
-
 # 添加项目路径
 sys.path.append(str(Path(__file__).parent))
 
 print("🚀 启动BioClaw集成代理层 (AlphaFold + DeepSeek)")
-print(f"📡 API密钥: {DEEPSEEK_API_KEY[:8]}...{DEEPSEEK_API_KEY[-8:]}")
+print("🔒 安全版本 - API密钥从环境变量读取")
+
+# 检查API密钥
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
+if not DEEPSEEK_API_KEY:
+    print("❌ 错误: DEEPSEEK_API_KEY 环境变量未设置")
+    print("请设置环境变量:")
+    print("  export DEEPSEEK_API_KEY='你的API密钥'")
+    print("或创建 .env 文件")
+    sys.exit(1)
+
+print(f"✅ API密钥: {DEEPSEEK_API_KEY[:8]}...{DEEPSEEK_API_KEY[-8:]}")
 print("🧬 集成功能: BLAST + PubMed + AlphaFold")
 print("=" * 60)
 
