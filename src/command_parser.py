@@ -25,6 +25,12 @@ class CommandParser:
                 r'文献搜索\s+(.+)',  # 文献搜索<query>
                 r'查找文献\s+(.+)',  # 查找文献<query>
             ],
+            'alphafold': [
+                r'alphafold\s+(?:on\s+)?(.+)',  # alphafold on <sequence>
+                r'运行\s*alphafold\s*(?:预测\s*)?(.+)',  # 运行alphafold预测<sequence>
+                r'预测蛋白质结构\s+(.+)',  # 预测蛋白质结构<sequence>
+                r'蛋白质结构预测\s+(.+)',  # 蛋白质结构预测<sequence>
+            ],
             'pdb': [
                 r'pdb\s+(\w+)',  # pdb <id>
                 r'蛋白质结构\s+(\w+)',  # 蛋白质结构<id>
@@ -47,6 +53,7 @@ class CommandParser:
         self.command_descriptions = {
             'blast': 'BLAST序列搜索 - 示例: "blast搜索ATCG..." 或 "运行BLAST ATGGCC..."',
             'pubmed': 'PubMed文献检索 - 示例: "pubmed搜索cancer therapy" 或 "文献搜索基因编辑"',
+            'alphafold': 'AlphaFold蛋白质结构预测 - 示例: "alphafold on MVSKG..." 或 "预测蛋白质结构 MVSKG..."',
             'pdb': '蛋白质结构查看 - 示例: "pdb 1abc" 或 "蛋白质结构2hhb"',
             'help': '显示帮助信息',
             'status': '显示系统状态'
@@ -81,10 +88,11 @@ class CommandParser:
                         'type': command_type,
                         'original_text': text,
                         'params': params,
-                        'confidence': 0.9
+                        'confidence': 1.0,
+                        'note': f'匹配模式: {pattern}'
                     }
         
-        # 没有匹配到预定义模式，可能是自然语言
+        # 尝试自然语言解析
         return self._parse_natural_language(text)
     
     def _extract_params(self, command_type: str, match: re.Match, text: str) -> Dict[str, Any]:
@@ -128,6 +136,22 @@ class CommandParser:
                 'max_results': 10
             }
             
+        elif command_type == 'alphafold':
+            # 提取序列 - 可能包含"protein sequence"等前缀
+            sequence_text = match.group(1).strip()
+            # 移除常见前缀
+            sequence_text = re.sub(r'^(?:protein\s+sequence|seq|sequence)\s*[:=]?\s*', '', sequence_text, flags=re.IGNORECASE)
+            # 清理序列
+            sequence = re.sub(r'[^a-zA-Z]', '', sequence_text).upper()
+            
+            params = {
+                'sequence': sequence,
+                'job_name': f'protein_{sequence[:10]}_{hash(sequence) % 10000}',
+                'model_type': 'alphafold2_ptm',
+                'num_models': 1,
+                'num_recycles': 3
+            }
+            
         elif command_type == 'pdb':
             pdb_id = match.group(1).strip().upper()
             params = {
@@ -145,6 +169,7 @@ class CommandParser:
         keywords = {
             'blast': ['blast', '序列', '比对', '搜索序列', 'dna', 'rna', '蛋白质序列'],
             'pubmed': ['pubmed', '文献', '论文', '研究', '文章'],
+            'alphafold': ['alphafold', '结构预测', '蛋白质结构', '三维结构', 'af2', 'af2预测'],
             'pdb': ['pdb', '结构', '蛋白质结构', '三维结构', '分子结构']
         }
         
@@ -187,68 +212,26 @@ class CommandParser:
         
         help_text += "\n示例:\n"
         help_text += "• blast搜索ATCGATCGATCG\n"
-        help_text += "• 文献搜索cancer therapy\n"
+        help_text += "• pubmed搜索cancer immunotherapy\n"
+        help_text += "• alphafold on MVSKGEEDNMASLPATHELHIFGSINGVDFDMVGQGTGNPNDGYEELNLK\n"
         help_text += "• pdb 1abc\n"
         help_text += "• 帮助\n"
         
         return help_text
-    
-    def format_response(self, command_result: Dict[str, Any]) -> str:
-        """格式化命令响应"""
-        cmd_type = command_result.get('type', 'unknown')
-        
-        if cmd_type == 'help':
-            return self.get_help()
-        
-        elif cmd_type == 'status':
-            return "BioQQ 系统状态: 运行正常\n功能: BLAST搜索, 文献检索, 蛋白质结构查看\n模式: 开发中"
-        
-        elif cmd_type == 'unknown':
-            return f"无法识别命令: {command_result.get('original_text', '')}\n\n{self.get_help()}"
-        
-        else:
-            # 其他命令的确认响应
-            params = command_result.get('params', {})
-            confidence = command_result.get('confidence', 0.0)
-            
-            response = f"识别到 {cmd_type.upper()} 命令"
-            
-            if confidence < 0.5:
-                response += f" (置信度: {confidence:.1%})"
-            
-            if params:
-                response += "\n参数:"
-                for key, value in params.items():
-                    if key != 'raw_text':
-                        response += f"\n• {key}: {value}"
-            
-            response += "\n\n正在处理..."
-            return response
-
-
-# 测试函数
-def test_parser():
-    """测试命令解析器"""
-    parser = CommandParser()
-    
-    test_cases = [
-        "blast搜索ATCGATCG",
-        "运行BLAST ATGGCCATTGTA",
-        "文献搜索cancer therapy",
-        "pdb 1abc",
-        "帮助",
-        "这是什么工具？",
-        "我想搜索一个DNA序列"
-    ]
-    
-    print("测试命令解析器:\n")
-    for test in test_cases:
-        print(f"输入: {test}")
-        result = parser.parse(test)
-        print(f"解析结果: {json.dumps(result, indent=2, ensure_ascii=False)}")
-        print(f"响应: {parser.format_response(result)}")
-        print("-" * 50)
-
 
 if __name__ == "__main__":
-    test_parser()
+    parser = CommandParser()
+    
+    # 测试
+    test_commands = [
+        "alphafold on MVSKGEEDNMASLPATHELHIFGSINGVDFDMVGQGTGNPNDGYEELNLK",
+        "运行alphafold预测MVSKGEEDNMASLPATHELHIFGSINGVDFDMVGQGTGNPNDGYEELNLK",
+        "预测蛋白质结构 MVSKGEEDNMASLPATHELHIFGSINGVDFDMVGQGTGNPNDGYEELNLK",
+        "help",
+    ]
+    
+    for cmd in test_commands:
+        result = parser.parse(cmd)
+        print(f"输入: {cmd}")
+        print(f"结果: {result}")
+        print()
