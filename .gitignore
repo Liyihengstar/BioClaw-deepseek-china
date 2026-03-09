@@ -1,0 +1,57 @@
+# BioClaw 国内适配版 - Git忽略规则
+
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 环境配置
+.env
+.env.local
+*.env
+
+# 日志文件
+*.log
+agent_layer.log
+
+# 临时文件
+/tmp/
+*.tmp
+*.temp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 测试生成文件
+test_*.py
+*_summary.py
+*_demo.py
+
+# AlphaFold临时文件
+alphafold_*/
+/tmp/alphafold_*
+
+# 数据文件
+*.csv
+*.tsv
+*.xlsx
+*.db
+*.sqlite
+
+# 二进制文件
+*.pdb
+*.cif
+*.mmcif
+*.png
+*.jpg
+*.jpeg
+*.pdf
